@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YOU INC. — Personal Operating System</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+:root{--black:#0a0a0a;--dark:#111;--card:#161616;--border:#242424;--border2:#2e2e2e;--gold:#c9a84c;--gold2:#e8c96e;--gold-dim:rgba(201,168,76,.12);--red:#e05252;--yellow:#d4a832;--green:#52c97a;--white:#f0ede8;--muted:#666;--muted2:#444;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--display:'Bebas Neue',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--black);color:var(--white);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;min-width:220px;background:var(--dark);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.logo{padding:28px 20px 20px;border-bottom:1px solid var(--border)}
+.logo-mark{font-family:var(--display);font-size:28px;letter-spacing:2px;color:var(--gold);line-height:1}
+.logo-sub{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-top:4px}
+.nav{padding:16px 0;flex:1;overflow-y:auto}
+.nav-section{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;padding:12px 20px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;font-size:13px;color:#888;transition:all .15s;border-left:2px solid transparent;user-select:none}
+.nav-item:hover{color:var(--white);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--gold-dim)}
+.nav-icon{font-size:14px;width:18px;text-align:center}
+.nav-badge{margin-left:auto;color:#fff;font-size:9px;font-family:var(--mono);padding:2px 5px;border-radius:3px;font-weight:500}
+.nb-g{background:var(--green);color:var(--black)}.nb-y{background:var(--yellow)}.nb-r{background:var(--red)}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--muted)}
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column}
+.topbar{background:var(--dark);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.page-title{font-family:var(--display);font-size:22px;letter-spacing:2px}
+.topbar-date{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.status-pill{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:20px;letter-spacing:1px}
+.sp-green{background:rgba(82,201,122,.15);color:var(--green);border:1px solid rgba(82,201,122,.3)}
+.sp-yellow{background:rgba(212,168,50,.15);color:var(--yellow);border:1px solid rgba(212,168,50,.3)}
+.sp-red{background:rgba(224,82,82,.15);color:var(--red);border:1px solid rgba(224,82,82,.3)}
+.content{padding:32px;flex:1}
+.page{display:none}.page.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:20px 24px}
+.card-title{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-value{font-family:var(--display);font-size:42px;letter-spacing:1px;line-height:1;color:var(--gold)}
+.stat-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:6px}
+.stat-delta{font-family:var(--mono);font-size:11px;margin-top:8px}
+.up{color:var(--green)}.down{color:var(--red)}.flat{color:var(--muted)}
+.mit-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.mit-item:last-child{border-bottom:none}
+.mit-check{width:20px;height:20px;border:1.5px solid var(--border2);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:11px}
+.mit-check.checked{background:var(--gold);border-color:var(--gold);color:var(--black)}
+.mit-text{font-size:13px;flex:1}.mit-text.done{text-decoration:line-through;color:var(--muted)}
+.mit-tag{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:var(--gold-dim);color:var(--gold);letter-spacing:1px;flex-shrink:0}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 6px;border-radius:3px;transition:all .15s;line-height:1}
+.icon-btn:hover{color:var(--red);background:rgba(224,82,82,.1)}
+input,textarea,select{background:var(--black);border:1px solid var(--border2);border-radius:4px;color:var(--white);font-family:var(--sans);font-size:13px;padding:8px 12px;width:100%;outline:none;transition:border-color .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--gold)}
+textarea{resize:vertical;min-height:70px}
+select option{background:var(--dark)}
+.form-row{margin-bottom:14px}
+.form-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block}
+.btn{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:10px 20px;border:none;border-radius:4px;cursor:pointer;transition:all .15s}
+.btn-gold{background:var(--gold);color:var(--black);font-weight:500}.btn-gold:hover{background:var(--gold2)}
+.btn-outline{background:transparent;color:var(--gold);border:1px solid var(--gold)}.btn-outline:hover{background:var(--gold-dim)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border2)}.btn-ghost:hover{color:var(--white)}
+.btn-danger{background:transparent;color:var(--red);border:1px solid var(--red)}.btn-danger:hover{background:rgba(224,82,82,.1)}
+.btn-sm{padding:5px 12px;font-size:9px}
+.section-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+.section-title{font-family:var(--display);font-size:20px;letter-spacing:2px}
+.section-action{font-family:var(--mono);font-size:10px;color:var(--gold);cursor:pointer;letter-spacing:1px;background:none;border:none;padding:0}
+.domain-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.domain-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.domain-card:hover{border-color:var(--border2);background:#1a1a1a}
+.domain-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.domain-card.green::before{background:var(--green)}.domain-card.yellow::before{background:var(--yellow)}.domain-card.red::before{background:var(--red)}
+.domain-name{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.domain-icon{font-size:20px;margin-bottom:8px;display:block}
+.domain-status{font-family:var(--display);font-size:18px;letter-spacing:1px}
+.domain-card.green .domain-status{color:var(--green)}.domain-card.yellow .domain-status{color:var(--yellow)}.domain-card.red .domain-status{color:var(--red)}
+.domain-note{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4}
+.kpi-wrap{margin-bottom:16px}
+.kpi-header{display:flex;justify-content:space-between;margin-bottom:6px}
+.kpi-name{font-size:12px}
+.kpi-val{font-family:var(--mono);font-size:11px;color:var(--gold)}
+.kpi-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.kpi-fill{height:100%;border-radius:2px;transition:width .8s ease}
+.kpi-fill.green{background:var(--green)}.kpi-fill.yellow{background:var(--yellow)}.kpi-fill.red{background:var(--red)}
+.alert{padding:12px 16px;border-radius:4px;font-size:12px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.alert.red{background:rgba(224,82,82,.1);border:1px solid rgba(224,82,82,.3);color:#ff9999}
+.alert.yellow{background:rgba(212,168,50,.1);border:1px solid rgba(212,168,50,.3);color:#ffd080}
+.alert.green{background:rgba(82,201,122,.1);border:1px solid rgba(82,201,122,.3);color:#80ffaa}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 12px 12px 0;border-bottom:1px solid var(--border)}
+td{padding:12px 12px 12px 0;border-bottom:1px solid var(--border);color:#ccc;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.person-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border)}
+.person-row:last-child{border-bottom:none}
+.person-avatar{width:36px;height:36px;border-radius:50%;background:var(--gold-dim);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:15px;color:var(--gold);flex-shrink:0}
+.person-info{flex:1;min-width:0}
+.person-name{font-size:13px;font-weight:500}
+.person-meta{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+.person-next{font-size:11px;color:#888;margin-top:3px;font-style:italic}
+.days-badge{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:3px;white-space:nowrap;flex-shrink:0}
+.days-badge.overdue{background:rgba(224,82,82,.15);color:var(--red)}
+.days-badge.soon{background:rgba(212,168,50,.15);color:var(--yellow)}
+.days-badge.ok{background:rgba(82,201,122,.15);color:var(--green)}
+.crm-actions{display:flex;gap:6px;flex-shrink:0}
+.atom-card{background:var(--black);border:1px solid var(--border);border-radius:4px;padding:14px 16px;margin-bottom:10px;transition:border-color .15s}
+.atom-card:hover{border-color:var(--border2)}
+.atom-source{font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:6px}
+.atom-insight{font-size:13px;line-height:1.5;margin-bottom:8px}
+.atom-deploy{font-size:11px;color:var(--muted);font-style:italic}
+.atom-footer{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap}
+.atom-domain{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:var(--gold-dim);color:var(--gold);letter-spacing:1px}
+.badge-deployed{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;cursor:pointer;transition:all .15s;margin-left:auto}
+.badge-deployed.yes{background:rgba(82,201,122,.15);color:var(--green)}
+.badge-deployed.no{background:var(--border);color:var(--muted)}.badge-deployed.no:hover{background:rgba(82,201,122,.15);color:var(--green)}
+.win-entry{background:var(--black);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:0 4px 4px 0;padding:10px 14px;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sprint-obj{padding:14px 0;border-bottom:1px solid var(--border)}
+.sprint-obj:last-child{border-bottom:none}
+.sprint-obj-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.sprint-obj-num{font-family:var(--display);font-size:22px;color:var(--gold);line-height:1;width:28px;flex-shrink:0}
+.sprint-obj-text{font-size:13px;flex:1;line-height:1.4}
+.sprint-bar-row{display:flex;align-items:center;gap:12px}
+.sprint-progress{height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex:1}
+.sprint-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .6s ease}
+.sprint-pct{font-family:var(--mono);font-size:10px;color:var(--muted);width:35px;text-align:right;flex-shrink:0}
+.sprint-edit-btn{font-family:var(--mono);font-size:9px;color:var(--muted);background:none;border:1px solid var(--border);border-radius:3px;padding:2px 7px;cursor:pointer;transition:all .15s}
+.sprint-edit-btn:hover{border-color:var(--gold);color:var(--gold)}
+.sop-card{background:var(--black);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:10px;cursor:pointer;transition:all .15s}
+.sop-card:hover{border-color:var(--border2)}
+.sop-card.triggered{border-left:3px solid var(--red);border-radius:0 4px 4px 0}
+.sop-id{font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:6px}
+.sop-name{font-size:14px;font-weight:500;margin-bottom:8px}
+.sop-meta{display:flex;gap:6px;flex-wrap:wrap}
+.sop-tag{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:var(--border);color:var(--muted);letter-spacing:1px}
+.sop-tag.red{background:rgba(224,82,82,.15);color:var(--red)}
+.sop-detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:#aaa;line-height:1.6}
+.sop-detail.open{display:block}
+.habit-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.habit-label{font-family:var(--mono);font-size:10px;color:var(--muted);width:120px;flex-shrink:0}
+.habit-days{display:flex;gap:5px}
+.habit-day{width:28px;height:28px;border-radius:4px;background:var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:var(--muted);cursor:pointer;transition:all .15s;border:1px solid transparent}
+.habit-day:hover{border-color:var(--gold)}
+.habit-day.done{background:var(--gold);color:var(--black);font-weight:500}
+.habit-day.rest{background:rgba(82,201,122,.15);color:var(--green)}
+.tl-item{position:relative;padding:0 0 20px 20px}
+.tl-item::before{content:'';position:absolute;left:6px;top:8px;bottom:-4px;width:1px;background:var(--border)}
+.tl-item:last-child::before{display:none}
+.tl-dot{position:absolute;left:2px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--border2);border:2px solid var(--black)}
+.tl-dot.gold{background:var(--gold)}.tl-dot.green{background:var(--green)}
+.tl-time{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:3px}
+.tl-text{font-size:13px}.tl-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.mb-16{margin-bottom:16px}.mb-24{margin-bottom:24px}
+.flex{display:flex}.gap-12{gap:12px}.gap-8{gap:8px}.items-center{align-items:center}.justify-between{justify-content:space-between}
+.text-muted{color:var(--muted)}.text-gold{color:var(--gold)}.text-mono{font-family:var(--mono);font-size:11px}
+.empty-state{text-align:center;padding:32px;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:1px;border:1px dashed var(--border);border-radius:4px;margin:8px 0}
+.loading{text-align:center;padding:24px;font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:3px}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--dark);border:1px solid var(--border2);border-radius:8px;padding:32px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:var(--display);font-size:24px;letter-spacing:2px;color:var(--gold);margin-bottom:20px}
+.modal-footer{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+/* PROGRESS SLIDER */
+input[type=range]{-webkit-appearance:none;appearance:none;height:4px;background:var(--border2);border-radius:2px;outline:none;padding:0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--gold);cursor:pointer}
+/* INLINE FORM */
+.inline-form{display:none;padding:16px;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:4px;margin-bottom:16px}
+.inline-form.open{display:block}
+/* TOAST */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--gold);color:var(--black);font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:10px 18px;border-radius:4px;z-index:9999;animation:fadeUp .2s ease}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--dark)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">ACTION</div>
+    <div id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">CANCEL</button>
+      <button class="btn btn-gold" id="modal-confirm">CONFIRM</button>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">YOU INC.</div>
+      <div class="logo-sub">Personal OS v1.0</div>
+    </div>
+    <div class="nav">
+      <div class="nav-section">Command</div>
+      <div class="nav-item active" onclick="navigate('daily',this)"><span class="nav-icon">⚡</span>Daily Command</div>
+      <div class="nav-item" onclick="navigate('board',this)"><span class="nav-icon">📋</span>Weekly Board</div>
+      <div class="nav-section">Domains</div>
+      <div class="nav-item" onclick="navigate('health',this)"><span class="nav-icon">💪</span>Health<span class="nav-badge nb-g" id="badge-health">G</span></div>
+      <div class="nav-item" onclick="navigate('career',this)"><span class="nav-icon">💰</span>Career & Wealth<span class="nav-badge nb-y" id="badge-career">Y</span></div>
+      <div class="nav-item" onclick="navigate('learning',this)"><span class="nav-icon">🧠</span>Learning<span class="nav-badge nb-g" id="badge-learning">G</span></div>
+      <div class="nav-item" onclick="navigate('relationships',this)"><span class="nav-icon">🤝</span>Relationships<span class="nav-badge nb-r" id="badge-rel">R</span></div>
+      <div class="nav-item" onclick="navigate('finance',this)"><span class="nav-icon">📊</span>Finance<span class="nav-badge nb-g">G</span></div>
+      <div class="nav-item" onclick="navigate('identity',this)"><span class="nav-icon">🔥</span>Identity/Edge<span class="nav-badge nb-g">G</span></div>
+      <div class="nav-section">Strategy</div>
+      <div class="nav-item" onclick="navigate('sprint',this)"><span class="nav-icon">🏹</span>Q2 Sprint</div>
+      <div class="nav-item" onclick="navigate('sops',this)"><span class="nav-icon">📁</span>SOP Library</div>
+      <div class="nav-item" onclick="navigate('kpis',this)"><span class="nav-icon">📈</span>KPI Dashboard</div>
+      <div class="nav-section">Tools</div>
+      <div class="nav-item" onclick="exportAllCSV()"><span class="nav-icon">📥</span>Export All CSV</div>
+    </div>
+    <div class="sidebar-footer">
+      <div id="footer-date"></div>
+      <div style="margin-top:4px;color:var(--green);font-size:9px">● DATABASE LIVE</div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="flex items-center gap-12">
+        <div class="page-title" id="page-title">DAILY COMMAND</div>
+        <div class="topbar-date" id="topbar-date"></div>
+      </div>
+      <div class="topbar-right">
+        <span class="status-pill sp-yellow">DEAL SPRINT ACTIVE</span>
+        <span class="status-pill sp-green">SYSTEM LIVE</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ===== DAILY COMMAND ===== -->
+      <div class="page active" id="page-daily">
+        <div class="alert yellow" id="rel-alert" style="display:none">
+          <span>⚠</span><span id="rel-alert-text">Overdue Tier-1 contacts detected.</span>
+        </div>
+        <div class="grid-4 mb-24">
+          <div class="card"><div class="card-title">MITs Done Today</div><div class="stat-value" id="stat-mits-done">—</div><div class="stat-label">of today's tasks</div></div>
+          <div class="card"><div class="card-title">Trained Today</div><div class="stat-value" id="stat-trained" style="font-size:26px;color:var(--muted)">—</div><div class="stat-label">log below</div></div>
+          <div class="card"><div class="card-title">Wins This Week</div><div class="stat-value" id="stat-wins">—</div><div class="stat-label">logged</div></div>
+          <div class="card"><div class="card-title">Knowledge Atoms</div><div class="stat-value" id="stat-atoms">—</div><div class="stat-label">this week</div></div>
+        </div>
+        <div class="grid-2 gap-12 mb-24">
+          <div class="card">
+            <div class="section-header">
+              <div class="card-title" style="margin:0">MOST IMPORTANT TASKS</div>
+              <button class="section-action" onclick="toggleForm('form-mit')">+ Add MIT</button>
+            </div>
+            <div class="inline-form" id="form-mit">
+              <div class="form-row"><label class="form-label">Task</label><input id="inp-mit-text" placeholder="What must get done today?"></div>
+              <div class="flex gap-12">
+                <div style="flex:1"><label class="form-label">Domain</label>
+                  <select id="inp-mit-domain"><option>CAREER</option><option>HEALTH</option><option>LEARNING</option><option>RELATIONS</option><option>FINANCE</option><option>IDENTITY</option><option>OPS</option></select>
+                </div>
+                <div style="align-self:flex-end"><button class="btn btn-gold btn-sm" onclick="addMIT()">ADD</button></div>
+              </div>
+            </div>
+            <div id="list-mits"><div class="loading">LOADING...</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">EVENING LOG</div>
+            <div class="form-row"><label class="form-label">Training</label>
+              <div class="flex gap-12">
+                <select id="inp-log-muscle" style="flex:1"><option value="">No training today</option><option>Chest / Triceps</option><option>Back / Biceps</option><option>Legs</option><option>Shoulders / Arms</option><option>Full Body</option><option>Rest / Recovery</option></select>
+                <select id="inp-log-intensity" style="width:80px"><option value="">RPE</option><option>6/10</option><option>7/10</option><option>8/10</option><option>9/10</option><option>10/10</option></select>
+              </div>
+            </div>
+            <div class="form-row"><label class="form-label">Sleep Target</label><input type="time" id="inp-log-sleep" value="23:00"></div>
+            <div class="form-row"><label class="form-label">Win of the Day</label><input id="inp-log-win" placeholder="One thing that moved the needle"></div>
+            <div class="form-row"><label class="form-label">Open Loop (carry forward)</label><input id="inp-log-loop" placeholder="What needs to happen tomorrow?"></div>
+            <button class="btn btn-gold" style="width:100%" onclick="saveEveningLog()">SAVE LOG</button>
+          </div>
+        </div>
+        <div class="card mb-24">
+          <div class="section-header">
+            <div class="card-title" style="margin:0">WINS LOG</div>
+            <button class="section-action" onclick="toggleForm('form-win')">+ Log Win</button>
+          </div>
+          <div class="inline-form" id="form-win">
+            <div class="flex gap-12">
+              <input id="inp-win-text" placeholder="What moved the needle?" style="flex:1">
+              <select id="inp-win-domain" style="width:120px"><option>CAREER</option><option>HEALTH</option><option>LEARNING</option><option>RELATIONS</option><option>FINANCE</option><option>IDENTITY</option></select>
+              <button class="btn btn-gold btn-sm" onclick="addWin()">ADD</button>
+            </div>
+          </div>
+          <div id="list-wins"><div class="loading">LOADING...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">TODAY'S STRUCTURE</div>
+          <div class="grid-2">
+            <div>
+              <div class="tl-item"><div class="tl-dot gold"></div><div class="tl-time">5:00 AM</div><div class="tl-text">Train (non-negotiable)</div><div class="tl-sub">Whatever it takes</div></div>
+              <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">6:30 AM</div><div class="tl-text">Morning Command (5 min)</div><div class="tl-sub">MITs · Calendar · Identity intention</div></div>
+              <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">Commute</div><div class="tl-text">Knowledge capture window</div><div class="tl-sub">Audiobook → capture atoms</div></div>
+            </div>
+            <div>
+              <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">7 AM – 10 PM+</div><div class="tl-text">IB — Deal Sprint Active</div><div class="tl-sub">Execute. Be excellent.</div></div>
+              <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">~10 PM</div><div class="tl-text">Evening Log (5 min)</div><div class="tl-sub">MIT status · Health · Win · Loop</div></div>
+              <div class="tl-item"><div class="tl-dot green"></div><div class="tl-time">11:00 PM</div><div class="tl-text">Lights out — non-negotiable</div><div class="tl-sub">Target 7h minimum</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== WEEKLY BOARD ===== -->
+      <div class="page" id="page-board">
+        <div class="section-header mb-24">
+          <div class="section-title">WEEKLY BOARD</div>
+          <span class="text-mono text-muted" id="board-week-label"></span>
+        </div>
+        <div class="domain-grid" id="board-domain-grid">
+          <div class="domain-card green" onclick="navigate('health',document.querySelector('[onclick*=health]'))"><span class="domain-icon">💪</span><div class="domain-name">Health</div><div class="domain-status">GREEN</div><div class="domain-note">5/5 sessions · 7.2h sleep avg</div></div>
+          <div class="domain-card yellow" onclick="navigate('career',document.querySelector('[onclick*=career]'))"><span class="domain-icon">💰</span><div class="domain-name">Career/Wealth</div><div class="domain-status">YELLOW</div><div class="domain-note">2/3 wins · 0 hustle hrs</div></div>
+          <div class="domain-card green" onclick="navigate('learning',document.querySelector('[onclick*=learning]'))"><span class="domain-icon">🧠</span><div class="domain-name">Learning</div><div class="domain-status">GREEN</div><div class="domain-note">7 atoms · 2 deployed</div></div>
+          <div class="domain-card red" onclick="navigate('relationships',document.querySelector('[onclick*=relationships]'))"><span class="domain-icon">🤝</span><div class="domain-name">Relationships</div><div class="domain-status">RED</div><div class="domain-note">Tier-1 overdue detected</div></div>
+          <div class="domain-card green" onclick="navigate('finance',document.querySelector('[onclick*=finance]'))"><span class="domain-icon">📊</span><div class="domain-name">Finance</div><div class="domain-status">GREEN</div><div class="domain-note">NW +$1,240 · 34% savings</div></div>
+          <div class="domain-card green"><span class="domain-icon">⚙️</span><div class="domain-name">Operations</div><div class="domain-status">GREEN</div><div class="domain-note">MIT 83% · Inbox zero</div></div>
+          <div class="domain-card yellow" onclick="navigate('sprint',document.querySelector('[onclick*=sprint]'))"><span class="domain-icon">🏹</span><div class="domain-name">Strategy</div><div class="domain-status">YELLOW</div><div class="domain-note">2/3 Q2 objectives on track</div></div>
+          <div class="domain-card green" onclick="navigate('identity',document.querySelector('[onclick*=identity]'))"><span class="domain-icon">🔥</span><div class="domain-name">Identity/Edge</div><div class="domain-status">GREEN</div><div class="domain-note">2 edge entries this week</div></div>
+        </div>
+        <div class="grid-2 gap-12">
+          <div class="card">
+            <div class="section-header">
+              <div class="card-title" style="margin:0">DECISIONS THIS WEEK</div>
+              <button class="section-action" onclick="toggleForm('form-decision')">+ Add Decision</button>
+            </div>
+            <div class="inline-form" id="form-decision">
+              <div class="flex gap-12">
+                <input id="inp-decision-text" placeholder="Decision to make or action to commit to..." style="flex:1">
+                <select id="inp-decision-domain" style="width:120px"><option>CAREER</option><option>HEALTH</option><option>LEARNING</option><option>RELATIONS</option><option>FINANCE</option><option>IDENTITY</option><option>STRATEGY</option></select>
+                <button class="btn btn-gold btn-sm" onclick="addDecision()">ADD</button>
+              </div>
+            </div>
+            <div id="list-decisions"><div class="loading">LOADING...</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">NEXT WEEK PRIORITIES</div>
+            <table>
+              <thead><tr><th>Domain</th><th>Priority</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td style="color:var(--green)">Health</td><td>Maintain 5x training through sprint</td><td><span style="font-family:var(--mono);font-size:10px;color:var(--green)">ON TRACK</span></td></tr>
+                <tr><td style="color:var(--yellow)">Career</td><td>Side hustle: 2hr prototype block Saturday</td><td><span style="font-family:var(--mono);font-size:10px;color:var(--yellow)">NEEDS PUSH</span></td></tr>
+                <tr><td style="color:var(--green)">Learning</td><td>Start next book — commute only</td><td><span style="font-family:var(--mono);font-size:10px;color:var(--green)">ON TRACK</span></td></tr>
+                <tr><td style="color:var(--red)">Relations</td><td>Clear ALL Tier-1 overdue contacts</td><td><span style="font-family:var(--mono);font-size:10px;color:var(--red)">ACT NOW</span></td></tr>
+                <tr><td style="color:var(--green)">Finance</td><td>Review investment pipeline</td><td><span style="font-family:var(--mono);font-size:10px;color:var(--green)">ON TRACK</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== HEALTH ===== -->
+      <div class="page" id="page-health">
+        <div class="grid-4 mb-24">
+          <div class="card"><div class="card-title">Training Compliance</div><div class="stat-value" id="h-compliance">—</div><div class="stat-label">7-day rolling</div></div>
+          <div class="card"><div class="card-title">Avg Sleep</div><div class="stat-value" id="h-sleep">—</div><div class="stat-label">7-day rolling</div></div>
+          <div class="card"><div class="card-title">Avg Recovery</div><div class="stat-value" id="h-recovery">—</div><div class="stat-label">out of 5</div></div>
+          <div class="card"><div class="card-title">Sessions This Week</div><div class="stat-value" id="h-sessions">—</div><div class="stat-label">target: 5</div></div>
+        </div>
+        <div class="grid-2 gap-12 mb-24">
+          <div class="card">
+            <div class="section-header">
+              <div class="card-title" style="margin:0">LOG SESSION</div>
+            </div>
+            <div class="form-row"><label class="form-label">Muscle Group</label>
+              <select id="inp-h-muscle"><option value="">Select...</option><option>Chest / Triceps</option><option>Back / Biceps</option><option>Legs</option><option>Shoulders / Arms</option><option>Full Body</option><option>Rest / Recovery</option></select>
+            </div>
+            <div class="form-row"><label class="form-label">Intensity (RPE 1-10)</label><input type="number" id="inp-h-intensity" min="1" max="10" value="8" placeholder="8"></div>
+            <div class="form-row"><label class="form-label">Sleep Hours Last Night</label><input type="number" id="inp-h-sleep" step="0.5" min="0" max="12" value="7" placeholder="7"></div>
+            <div class="form-row"><label class="form-label">Recovery Score (1-5)</label><input type="number" id="inp-h-recovery" min="1" max="5" value="3" placeholder="3"></div>
+            <div class="form-row"><label class="form-label">Notes</label><textarea id="inp-h-notes" style="min-height:50px" placeholder="Optional notes..."></textarea></div>
+            <button class="btn btn-gold" style="width:100%" onclick="logHealthSession()">LOG SESSION</button>
+          </div>
+          <div class="card">
+            <div class="card-title">KPI TRENDS</div>
+            <div class="kpi-wrap"><div class="kpi-header"><span class="kpi-name">Training Compliance</span><span class="kpi-val" id="kpi-h-compliance">—</span></div><div class="kpi-track"><div class="kpi-fill green" id="bar-h-compliance" style="width:0%"></div></div></div>
+            <div class="kpi-wrap"><div class="kpi-header"><span class="kpi-name">Sleep Average</span><span class="kpi-val" id="kpi-h-sleep">—</span></div><div class="kpi-track"><div class="kpi-fill green" id="bar-h-sleep" style="width:0%"></div></div></div>
+            <div class="kpi-wrap"><div class="kpi-header"><span class="kpi-name">Recovery Score</span><span class="kpi-val" id="kpi-h-recovery">—</span></div><div class="kpi-track"><div class="kpi-fill green" id="bar-h-recovery" style="width:0%"></div></div></div>
+            <div style="margin-top:20px" class="alert yellow">
+              <span>⚡</span><span>Deal sprint active. Training is the only true non-negotiable. Everything else permitted to slip 15%.</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">RECENT SESSIONS</div>
+          <div id="list-health-logs"><div class="loading">LOADING...</div></div>
+        </div>
+      </div>
+
+      <!-- ===== CAREER ===== -->
+      <div class="page" id="page-career">
+        <div class="grid-4 mb-24">
+          <div class="card"><div class="card-title">Career Wins</div><div class="stat-value" id="stat-career-wins">—</div><div class="stat-label">this week</div><div class="stat-delta" id="delta-career-wins"></div></div>
+          <div class="card"><div class="card-title">Promo Score</div><div class="stat-value">7.5</div><div class="stat-label">self-assessed / 10</div><div class="stat-delta up">↑ Up from 7.0</div></div>
+          <div class="card"><div class="card-title">Side Hustle Hrs</div><div class="stat-value" style="color:var(--red)">0</div><div class="stat-label">this week</div><div class="stat-delta down">↓ Deal sprint impact</div></div>
+          <div class="card"><div class="card-title">Investment Moves</div><div class="stat-value">1</div><div class="stat-label">this month</div><div class="stat-delta flat">→ On track</div></div>
+        </div>
+        <div class="grid-2 gap-12">
+          <div class="card">
+            <div class="section-header">
+              <div class="card-title" style="margin:0">CAREER WINS</div>
+              <button class="section-action" onclick="toggleForm('form-career-win')">+ Log Win</button>
+            </div>
+            <div class="inline-form" id="form-career-win">
+              <div class="flex gap-12">
+                <input id="inp-career-win" placeholder="What happened? Be specific." style="flex:1">
+                <button class="btn btn-gold btn-sm" onclick="addCareerWin()">LOG</button>
+              </div>
+            </div>
+            <div id="list-career-wins"><div class="loading">LOADING...</div></div>
+          </div>
+          <div class="card">
+            <div class="section-header">
+              <div class="card-title" style="margin:0">SIDE HUSTLE PIPELINE</div>
+              <button class="section-action" onclick="openAddHustleModal()">+ Add Idea</button>
+            </div>
+            <div id="list-hustle">
+              <table>
+                <thead><tr><th>Idea</th><th>Status</th><th>Next Action</th><th></th></tr></thead>
+                <tbody id="hustle-tbody">
+                  <tr><td>IB deal tracker app</td><td><span class="status-pill sp-yellow" style="font-size:9px;padding:2px 8px">BUILDING</span></td><td style="font-size:11px;color:var(--muted)">2hr block Sat</td><td><button class="icon-btn" onclick="openEditHustleModal(this,'IB deal tracker app','BUILDING','2hr block Sat')">✎</button></td></tr>
+                  <tr><td>Finance models template pack</td><td><span style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:var(--border);color:var(--muted)">IDEA</span></td><td style="font-size:11px;color:var(--muted)">Validate demand</td><td><button class="icon-btn" onclick="openEditHustleModal(this,'Finance models template pack','IDEA','Validate demand')">✎</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== LEARNING ===== -->
+      <div class="page" id="page-learning">
+        <div class="grid-4 mb-24">
+          <div class="card"><div class="card-title">Atoms This Week</div><div class="stat-value" id="stat-atoms-wk">—</div><div class="stat-label">target: ≥5</div></div>
+          <div class="card"><div class="card-title">Deployed</div><div class="stat-value" id="stat-atoms-deployed">—</div><div class="stat-label">changed a decision</div></div>
+          <div class="card"><div class="card-title">Total Atoms</div><div class="stat-value" id="stat-atoms-total">—</div><div class="stat-label">in library</div></div>
+          <div class="card"><div class="card-title">Books This Month</div><div class="stat-value">1</div><div class="stat-label">distilled</div></div>
+        </div>
+        <div class="card">
+          <div class="section-header">
+            <div class="card-title" style="margin:0">KNOWLEDGE ENGINE</div>
+            <button class="section-action" onclick="toggleForm('form-atom')">+ Capture Atom</button>
+          </div>
+          <div class="inline-form" id="form-atom">
+            <div class="form-row"><label class="form-label">Source</label><input id="inp-atom-source" placeholder="Book / Article / Podcast / Conversation"></div>
+            <div class="form-row"><label class="form-label">Core Insight (your words — 1-2 sentences)</label><textarea id="inp-atom-insight" placeholder="What's the insight?"></textarea></div>
+            <div class="form-row"><label class="form-label">Deploy By Doing What?</label><input id="inp-atom-deploy" placeholder="Specific situation where you'll use this"></div>
+            <div class="flex gap-12">
+              <select id="inp-atom-domain" style="flex:1"><option>CAREER</option><option>HEALTH</option><option>LEARNING</option><option>STRATEGY</option><option>IDENTITY</option><option>FINANCE</option></select>
+              <button class="btn btn-gold btn-sm" onclick="addAtom()">CAPTURE</button>
+              <button class="btn btn-ghost btn-sm" onclick="toggleForm('form-atom')">CANCEL</button>
+            </div>
+          </div>
+          <div id="list-atoms"><div class="loading">LOADING...</div></div>
+        </div>
+      </div>
+
+      <!-- ===== RELATIONSHIPS ===== -->
+      <div class="page" id="page-relationships">
+        <div class="alert red" id="crm-alert" style="display:none">
+          <span>🚨</span><span id="crm-alert-text"></span>
+        </div>
+        <div class="grid-4 mb-24">
+          <div class="card"><div class="card-title">Tier-1 Coverage</div><div class="stat-value" id="crm-t1-pct" style="color:var(--red)">—</div><div class="stat-label">touched this month</div></div>
+          <div class="card"><div class="card-title">Overdue</div><div class="stat-value" id="crm-overdue" style="color:var(--red)">—</div><div class="stat-label">Tier-1 &gt;30 days</div></div>
+          <div class="card"><div class="card-title">Total Contacts</div><div class="stat-value" id="crm-total">—</div><div class="stat-label">in CRM</div></div>
+          <div class="card"><div class="card-title">Queue This Week</div><div class="stat-value" id="crm-queue">3</div><div class="stat-label">outreach actions</div></div>
+        </div>
+        <div class="card">
+          <div class="section-header">
+            <div class="card-title" style="margin:0">RELATIONSHIP CRM</div>
+            <button class="section-action" onclick="openAddContactModal()">+ Add Contact</button>
+          </div>
+          <div id="list-relationships"><div class="loading">LOADING...</div></div>
+        </div>
+      </div>
+
+      <!-- ===== FINANCE ===== -->
+      <div class="page" id="page-finance">
+        <div class="alert green mb-24"><span>🔒</span><span>Finance data stays in your <strong>local Excel file only</strong>. This page is a checklist + reminder — never log real numbers here.</span></div>
+        <div class="grid-4 mb-24">
+          <div class="card"><div class="card-title">Net Worth</div><div class="stat-value" style="font-size:28px">LOCAL</div><div class="stat-label">Excel only</div><div class="stat-delta up">↑ Track monthly</div></div>
+          <div class="card"><div class="card-title">Savings Rate</div><div class="stat-value">34%</div><div class="stat-label">self-reported</div><div class="stat-delta up">↑ Target: ≥30%</div></div>
+          <div class="card"><div class="card-title">Investment Moves</div><div class="stat-value">1</div><div class="stat-label">this month</div><div class="stat-delta flat">→ Log in Excel</div></div>
+          <div class="card"><div class="card-title">Side Hustle P&L</div><div class="stat-value">$0</div><div class="stat-label">revenue to date</div><div class="stat-delta flat">→ Pipeline building</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">MONTHLY FINANCIAL AUDIT — SOP-009</div>
+          <div id="finance-checklist">
+            <div class="mit-item"><div class="mit-check" onclick="toggleFinanceCheck(this)"></div><div class="mit-text">Update all account balances in local Excel</div><span class="mit-tag">MONTHLY</span></div>
+            <div class="mit-item"><div class="mit-check" onclick="toggleFinanceCheck(this)"></div><div class="mit-text">Calculate net worth delta MoM</div><span class="mit-tag">MONTHLY</span></div>
+            <div class="mit-item"><div class="mit-check" onclick="toggleFinanceCheck(this)"></div><div class="mit-text">Calculate savings rate (saved ÷ take-home)</div><span class="mit-tag">MONTHLY</span></div>
+            <div class="mit-item"><div class="mit-check" onclick="toggleFinanceCheck(this)"></div><div class="mit-text">Log all investment moves with thesis notes</div><span class="mit-tag">MONTHLY</span></div>
+            <div class="mit-item"><div class="mit-check" onclick="toggleFinanceCheck(this)"></div><div class="mit-text">Update side hustle P&L</div><span class="mit-tag">MONTHLY</span></div>
+            <div class="mit-item"><div class="mit-check" onclick="toggleFinanceCheck(this)"></div><div class="mit-text">Write one-line narrative: "This month I ___"</div><span class="mit-tag">MONTHLY</span></div>
+          </div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            <div class="form-row"><label class="form-label">Monthly Narrative</label><textarea id="finance-narrative" placeholder="This month I..."></textarea></div>
+            <button class="btn btn-gold btn-sm" onclick="showToast('Narrative saved locally ✓')">SAVE NARRATIVE</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== IDENTITY ===== -->
+      <div class="page" id="page-identity">
+        <div class="grid-4 mb-24">
+          <div class="card"><div class="card-title">Edge Entries</div><div class="stat-value" id="stat-edge-wk">—</div><div class="stat-label">this week</div></div>
+          <div class="card"><div class="card-title">Total Edge Log</div><div class="stat-value" id="stat-edge-total">—</div><div class="stat-label">insights logged</div></div>
+          <div class="card"><div class="card-title">Deployed</div><div class="stat-value" id="stat-edge-deployed">—</div><div class="stat-label">used in real context</div></div>
+          <div class="card"><div class="card-title">Avg Sharpness</div><div class="stat-value" id="stat-edge-sharp">—</div><div class="stat-label">self-scored / 10</div></div>
+        </div>
+        <div class="card">
+          <div class="section-header">
+            <div class="card-title" style="margin:0">IDENTITY EDGE LOG</div>
+            <button class="section-action" onclick="toggleForm('form-edge')">+ Log Edge</button>
+          </div>
+          <div class="inline-form" id="form-edge">
+            <div class="form-row"><label class="form-label">Contrarian / Sharp Insight</label><textarea id="inp-edge-insight" placeholder="What's the take? What would most people get wrong here?"></textarea></div>
+            <div class="form-row"><label class="form-label">Context (where did this emerge?)</label><input id="inp-edge-context" placeholder="e.g. Deal room observation, book insight, conversation..."></div>
+            <div class="flex gap-12">
+              <div style="flex:1"><label class="form-label">Sharpness (1-10)</label><input type="number" id="inp-edge-sharp" min="1" max="10" value="8"></div>
+              <div style="align-self:flex-end"><button class="btn btn-gold btn-sm" onclick="addEdge()">LOG</button></div>
+              <div style="align-self:flex-end"><button class="btn btn-ghost btn-sm" onclick="toggleForm('form-edge')">CANCEL</button></div>
+            </div>
+          </div>
+          <div id="list-edges"><div class="loading">LOADING...</div></div>
+        </div>
+      </div>
+
+      <!-- ===== SPRINT ===== -->
+      <div class="page" id="page-sprint">
+        <div class="section-header mb-24">
+          <div class="section-title">Q2 2026 SPRINT</div>
+          <span class="text-mono text-muted">Apr – Jun 2026</span>
+        </div>
+        <div class="grid-2 gap-12" id="sprint-grid"><div class="loading">LOADING...</div></div>
+      </div>
+
+      <!-- ===== SOPs ===== -->
+      <div class="page" id="page-sops">
+        <div class="section-header mb-24"><div class="section-title">SOP LIBRARY</div><span class="text-mono text-muted">12 procedures · Click to expand</span></div>
+        <div class="grid-2 gap-12" id="sop-grid"></div>
+      </div>
+
+      <!-- ===== KPIs ===== -->
+      <div class="page" id="page-kpis">
+        <div class="section-header mb-24"><div class="section-title">KPI DASHBOARD</div><span class="text-mono text-muted" id="kpi-week-label"></span></div>
+        <div class="card mb-24">
+          <div class="card-title">SYSTEM HEALTH — ALL DOMAINS</div>
+          <div class="grid-2">
+            <div>
+              <div class="kpi-wrap"><div class="kpi-header"><span class="kpi-name">Training Compliance</span><span class="kpi-val" id="kpi-train">Loading...</span></div><div class="kpi-track"><div class="kpi-fill green" id="bar-train" style="width:0%"></div></div></div>
+              <div class="kpi-wrap"><div class="kpi-header"><span class="kpi-name">Sleep Average</span><span class="kpi-val" id="kpi-sleep">Loading...</span></div><div class="kpi-track"><div class="kpi-fill green" id="bar-sleep" style="width:0%"></div></div></div>
+              <div class="kpi-wrap"><div class="kpi-header"><span class="kpi-name">Recovery Score</span><span class="kpi-val" id="kpi-rec">Loading...</span></div><div class="kpi-track"><div class="kpi-fill green" id="bar-rec" style="width:0%"></div></div></div>
+              <div class="kpi-wrap"><div class="kpi-header"><span class="kpi-name">MIT Completion</span><span class="kpi-val" id="kpi-mit">Loading...</span></div><div class="kpi-track"><div class="kpi-fill green" id="bar-mit" style="width:0%"></div></div></div>
+            </div>
+            <div>
+              <div class="kpi-wrap"><div class="kpi-header"><span class="kpi-name">Knowledge Atoms / Week</span><span class="kpi-val" id="kpi-atoms">Loading...</span></div><div class="kpi-track"><div class="kpi-fill green" id="bar-atoms" style="width:0%"></div></div></div>
+              <div class="kpi-wrap"><div class="kpi-header"><span class="kpi-name">Tier-1 Relationship Coverage</span><span class="kpi-val" id="kpi-rel">Loading...</span></div><div class="kpi-track"><div class="kpi-fill red" id="bar-rel" style="width:0%"></div></div></div>
+              <div class="kpi-wrap"><div class="kpi-header"><span class="kpi-name">Career Wins / Week</span><span class="kpi-val" id="kpi-wins">Loading...</span></div><div class="kpi-track"><div class="kpi-fill yellow" id="bar-wins" style="width:0%"></div></div></div>
+              <div class="kpi-wrap"><div class="kpi-header"><span class="kpi-name">Identity Edge Entries</span><span class="kpi-val" id="kpi-edge">Loading...</span></div><div class="kpi-track"><div class="kpi-fill green" id="bar-edge" style="width:0%"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">ACTION TRIGGERS — WHAT NEEDS TO HAPPEN NOW</div>
+          <div id="kpi-actions"><div class="loading">LOADING...</div></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+// ─── SUPABASE INIT ────────────────────────────────────────────────────────────
+const SUPA_URL = 'https://ofmztycbixlhwuaydnrr.supabase.co';
+const SUPA_KEY = 'sb_publishable_dws0QegjVCSs1x0c9TCVBQ_e4i8aca8';
+const { createClient } = supabase;
+const sb = createClient(SUPA_URL, SUPA_KEY);
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const S = { mits:[], wins:[], atoms:[], relationships:[], edges:[], decisions:[], sprint:[], health:[] };
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+const today = () => new Date().toISOString().split('T')[0];
+const weekAgo = () => { const d=new Date(); d.setDate(d.getDate()-7); return d.toISOString().split('T')[0]; };
+const monthAgo = () => { const d=new Date(); d.setDate(d.getDate()-30); return d.toISOString().split('T')[0]; };
+const daysSince = (dateStr) => { if(!dateStr) return 999; return Math.floor((new Date()-new Date(dateStr))/(1000*60*60*24)); };
+const fmtDate = (d) => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+const el = (id) => document.getElementById(id);
+
+function showToast(msg, type='gold') {
+  const t=document.createElement('div');
+  t.className='toast';
+  t.style.background = type==='red'?'var(--red)':type==='green'?'var(--green)':'var(--gold)';
+  t.style.color = (type==='gold'||type==='green')?'var(--black)':'white';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+
+function toggleForm(id) {
+  const f=el(id); f.classList.toggle('open');
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+const PAGE_TITLES = {daily:'DAILY COMMAND',board:'WEEKLY BOARD',health:'HEALTH COMMANDER',career:'CAREER & WEALTH',learning:'CHIEF LEARNING OFFICER',relationships:'RELATIONSHIPS CRM',finance:'CFO — FINANCE',identity:'IDENTITY / EDGE',sprint:'Q2 SPRINT PLAN',sops:'SOP LIBRARY',kpis:'KPI DASHBOARD'};
+
+function navigate(id, navEl) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg=el('page-'+id); if(pg) pg.classList.add('active');
+  el('page-title').textContent = PAGE_TITLES[id]||id.toUpperCase();
+  if(navEl) navEl.classList.add('active');
+  loadPage(id);
+}
+
+function loadPage(id) {
+  if(id==='daily') { loadMITs(); loadWins(); loadAtomCount(); checkOverdueRelationships(); }
+  if(id==='board') { loadDecisions(); }
+  if(id==='health') { loadHealthLogs(); }
+  if(id==='career') { loadCareerWins(); }
+  if(id==='learning') { loadAtoms(); }
+  if(id==='relationships') { loadRelationships(); }
+  if(id==='identity') { loadEdges(); }
+  if(id==='sprint') { loadSprint(); }
+  if(id==='sops') { renderSOPs(); }
+  if(id==='kpis') { loadAllKPIs(); }
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+let modalOnConfirm = null;
+function openModal(title, bodyHTML, onConfirm, confirmLabel='CONFIRM') {
+  el('modal-title').textContent = title;
+  el('modal-body').innerHTML = bodyHTML;
+  el('modal-confirm').textContent = confirmLabel;
+  el('modal-confirm').onclick = ()=>{ if(modalOnConfirm) modalOnConfirm(); };
+  modalOnConfirm = onConfirm;
+  el('modal-overlay').classList.add('open');
+}
+function closeModal() { el('modal-overlay').classList.remove('open'); }
+el('modal-overlay').addEventListener('click', e=>{ if(e.target===el('modal-overlay')) closeModal(); });
+
+// ─── MITs ─────────────────────────────────────────────────────────────────────
+async function loadMITs() {
+  const {data,error} = await sb.from('mits').select('*').eq('date',today()).order('created_at');
+  if(error){console.error(error);return;}
+  S.mits=data||[];
+  renderMITs();
+}
+
+function renderMITs() {
+  const done = S.mits.filter(m=>m.done).length;
+  el('stat-mits-done').textContent = `${done}/${S.mits.length}`;
+  if(!S.mits.length){
+    el('list-mits').innerHTML='<div class="empty-state">No MITs yet today. Add up to 3.</div>';
+    return;
+  }
+  el('list-mits').innerHTML = S.mits.map(m=>`
+    <div class="mit-item">
+      <div class="mit-check ${m.done?'checked':''}" onclick="toggleMIT('${m.id}',${!m.done})">${m.done?'✓':''}</div>
+      <div class="mit-text ${m.done?'done':''}">${m.text}</div>
+      <span class="mit-tag">${m.domain}</span>
+      <button class="icon-btn" onclick="deleteMIT('${m.id}')" title="Delete">✕</button>
+    </div>`).join('');
+}
+
+async function addMIT() {
+  const text=el('inp-mit-text').value.trim();
+  if(!text) return;
+  if(S.mits.filter(m=>m.date===today()).length>=3){showToast('Max 3 MITs per day','red');return;}
+  const domain=el('inp-mit-domain').value;
+  const {error}=await sb.from('mits').insert({text,domain,date:today(),done:false});
+  if(error){showToast('Error saving','red');console.error(error);return;}
+  el('inp-mit-text').value='';
+  el('form-mit').classList.remove('open');
+  await loadMITs();
+  showToast('MIT added ✓');
+}
+
+async function toggleMIT(id, done) {
+  await sb.from('mits').update({done}).eq('id',id);
+  await loadMITs();
+}
+
+async function deleteMIT(id) {
+  openModal('DELETE MIT','<p style="font-size:13px;color:#aaa;line-height:1.6">Delete this MIT? This cannot be undone.</p>',async()=>{
+    await sb.from('mits').delete().eq('id',id);
+    closeModal();
+    await loadMITs();
+    showToast('MIT deleted');
+  },'DELETE');
+}
+
+// ─── WINS ─────────────────────────────────────────────────────────────────────
+async function loadWins() {
+  const {data}=await sb.from('wins').select('*').gte('created_at',weekAgo()+'T00:00:00').order('created_at',{ascending:false});
+  S.wins=data||[];
+  el('stat-wins').textContent=S.wins.length;
+  renderWins('list-wins', S.wins);
+}
+
+async function loadCareerWins() {
+  const {data}=await sb.from('wins').select('*').gte('created_at',weekAgo()+'T00:00:00').order('created_at',{ascending:false});
+  const all=data||[];
+  const career=all.filter(w=>w.domain==='CAREER');
+  el('stat-career-wins').textContent=career.length;
+  el('delta-career-wins').textContent=career.length>=3?'↑ On target':'↓ Below target (3)';
+  el('delta-career-wins').className='stat-delta '+(career.length>=3?'up':'down');
+  renderWins('list-career-wins', all.slice(0,8));
+}
+
+function renderWins(listId, wins) {
+  if(!wins.length){el(listId).innerHTML='<div class="empty-state">No wins logged yet. Start logging.</div>';return;}
+  el(listId).innerHTML=wins.map(w=>`
+    <div class="win-entry">
+      <span>${w.text}</span>
+      <div class="flex gap-8 items-center">
+        <span class="mit-tag">${w.domain||'GENERAL'}</span>
+        <button class="icon-btn" onclick="deleteWin('${w.id}','${listId}')" title="Delete">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function addWin() {
+  const text=el('inp-win-text').value.trim(); if(!text) return;
+  const domain=el('inp-win-domain').value;
+  await sb.from('wins').insert({text,domain});
+  el('inp-win-text').value='';
+  el('form-win').classList.remove('open');
+  await loadWins();
+  showToast('Win logged ✓');
+}
+
+async function addCareerWin() {
+  const text=el('inp-career-win').value.trim(); if(!text) return;
+  await sb.from('wins').insert({text,domain:'CAREER'});
+  el('inp-career-win').value='';
+  el('form-career-win').classList.remove('open');
+  await loadCareerWins();
+  showToast('Career win logged ✓');
+}
+
+async function deleteWin(id, listId) {
+  await sb.from('wins').delete().eq('id',id);
+  if(listId==='list-career-wins') await loadCareerWins();
+  else await loadWins();
+  showToast('Deleted');
+}
+
+// ─── EVENING LOG ──────────────────────────────────────────────────────────────
+async function saveEveningLog() {
+  const muscle=el('inp-log-muscle').value;
+  const intensity=el('inp-log-intensity').value;
+  const sleep_target=el('inp-log-sleep').value;
+  const winText=el('inp-log-win').value.trim();
+  const loop=el('inp-log-loop').value.trim();
+  const trained=!!muscle&&muscle!=='';
+
+  await sb.from('daily_logs').upsert({date:today(),muscle_group:muscle,intensity,sleep_target,open_loop:loop,trained},{onConflict:'date'});
+  if(trained){
+    el('stat-trained').textContent='✓';
+    el('stat-trained').style.color='var(--green)';
+  }
+  if(winText){ await sb.from('wins').insert({text:winText,domain:'GENERAL'}); await loadWins(); }
+  if(loop) showToast('Loop logged: carry forward ✓');
+  showToast('Evening log saved ✓','green');
+  el('inp-log-win').value=''; el('inp-log-loop').value='';
+}
+
+// ─── HEALTH LOGS ──────────────────────────────────────────────────────────────
+async function loadHealthLogs() {
+  const {data}=await sb.from('health_logs').select('*').gte('date',weekAgo()).order('date',{ascending:false});
+  S.health=data||[];
+  renderHealthLogs();
+  computeHealthKPIs();
+}
+
+function renderHealthLogs() {
+  if(!S.health.length){el('list-health-logs').innerHTML='<div class="empty-state">No sessions logged this week. Log your first session above.</div>';return;}
+  el('list-health-logs').innerHTML=`<table>
+    <thead><tr><th>Date</th><th>Muscle Group</th><th>Intensity</th><th>Sleep</th><th>Recovery</th><th>Notes</th><th></th></tr></thead>
+    <tbody>${S.health.map(h=>`
+      <tr>
+        <td class="text-mono" style="color:var(--muted)">${fmtDate(h.date)}</td>
+        <td>${h.muscle_group||'—'}</td>
+        <td>${h.intensity?h.intensity+'/10':'—'}</td>
+        <td>${h.sleep_hours?h.sleep_hours+'h':'—'}</td>
+        <td>${h.recovery_score?h.recovery_score+'/5':'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${h.notes||''}</td>
+        <td><button class="icon-btn" onclick="deleteHealthLog('${h.id}')">✕</button></td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function computeHealthKPIs() {
+  const logs=S.health;
+  const trained=logs.filter(h=>h.muscle_group&&h.muscle_group!=='Rest / Recovery').length;
+  const compliance=logs.length?Math.round(trained/7*100):0;
+  const sleepVals=logs.filter(h=>h.sleep_hours).map(h=>parseFloat(h.sleep_hours));
+  const avgSleep=sleepVals.length?(sleepVals.reduce((a,b)=>a+b,0)/sleepVals.length).toFixed(1):0;
+  const recVals=logs.filter(h=>h.recovery_score).map(h=>h.recovery_score);
+  const avgRec=recVals.length?(recVals.reduce((a,b)=>a+b,0)/recVals.length).toFixed(1):0;
+
+  el('h-compliance').textContent=compliance+'%';
+  el('h-sleep').textContent=avgSleep+'h';
+  el('h-recovery').textContent=avgRec;
+  el('h-sessions').textContent=trained;
+
+  const cClass=compliance>=90?'green':compliance>=70?'yellow':'red';
+  const sClass=parseFloat(avgSleep)>=7?'green':parseFloat(avgSleep)>=6?'yellow':'red';
+  const rClass=parseFloat(avgRec)>=3.5?'green':parseFloat(avgRec)>=2.5?'yellow':'red';
+
+  el('kpi-h-compliance').textContent=compliance+'%'; el('bar-h-compliance').style.width=Math.min(compliance,100)+'%'; el('bar-h-compliance').className='kpi-fill '+cClass;
+  el('kpi-h-sleep').textContent=avgSleep+'h'; el('bar-h-sleep').style.width=Math.min(parseFloat(avgSleep)/9*100,100)+'%'; el('bar-h-sleep').className='kpi-fill '+sClass;
+  el('kpi-h-recovery').textContent=avgRec+'/5'; el('bar-h-recovery').style.width=parseFloat(avgRec)/5*100+'%'; el('bar-h-recovery').className='kpi-fill '+rClass;
+}
+
+async function logHealthSession() {
+  const muscle=el('inp-h-muscle').value; if(!muscle){showToast('Select a muscle group','red');return;}
+  const intensity=parseInt(el('inp-h-intensity').value)||8;
+  const sleep_hours=parseFloat(el('inp-h-sleep').value)||7;
+  const recovery_score=parseInt(el('inp-h-recovery').value)||3;
+  const notes=el('inp-h-notes').value.trim();
+  await sb.from('health_logs').insert({date:today(),muscle_group:muscle,intensity,sleep_hours,recovery_score,notes});
+  el('inp-h-muscle').value=''; el('inp-h-notes').value='';
+  await loadHealthLogs();
+  showToast('Session logged ✓','green');
+}
+
+async function deleteHealthLog(id) {
+  await sb.from('health_logs').delete().eq('id',id);
+  await loadHealthLogs();
+  showToast('Deleted');
+}
+
+// ─── ATOMS ────────────────────────────────────────────────────────────────────
+async function loadAtomCount() {
+  const {data}=await sb.from('knowledge_atoms').select('id').gte('created_at',weekAgo()+'T00:00:00');
+  el('stat-atoms').textContent=(data||[]).length;
+}
+
+async function loadAtoms() {
+  const {data}=await sb.from('knowledge_atoms').select('*').order('created_at',{ascending:false});
+  S.atoms=data||[];
+  const wk=S.atoms.filter(a=>new Date(a.created_at)>=new Date(weekAgo())).length;
+  const deployed=S.atoms.filter(a=>a.deployed).length;
+  el('stat-atoms-wk').textContent=wk;
+  el('stat-atoms-deployed').textContent=deployed;
+  el('stat-atoms-total').textContent=S.atoms.length;
+  renderAtoms();
+}
+
+function renderAtoms() {
+  if(!S.atoms.length){el('list-atoms').innerHTML='<div class="empty-state">No atoms yet. Capture your first insight.</div>';return;}
+  el('list-atoms').innerHTML=S.atoms.map(a=>`
+    <div class="atom-card">
+      <div class="atom-source">${(a.source||'MANUAL').toUpperCase()} · ${fmtDate(a.created_at)}</div>
+      <div class="atom-insight">${a.insight}</div>
+      ${a.deploy_action?`<div class="atom-deploy">→ Deploy: ${a.deploy_action}</div>`:''}
+      <div class="atom-footer">
+        <span class="atom-domain">${a.domain||'GENERAL'}</span>
+        <span class="badge-deployed ${a.deployed?'yes':'no'}" onclick="toggleAtomDeployed('${a.id}',${!a.deployed})" title="${a.deployed?'Deployed':'Click to mark deployed'}">
+          ${a.deployed?'✓ DEPLOYED':'PENDING — MARK DEPLOYED'}
+        </span>
+        <button class="icon-btn" onclick="deleteAtom('${a.id}')" title="Delete" style="margin-left:8px">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function addAtom() {
+  const insight=el('inp-atom-insight').value.trim(); if(!insight){showToast('Insight required','red');return;}
+  const source=el('inp-atom-source').value.trim();
+  const deploy_action=el('inp-atom-deploy').value.trim();
+  const domain=el('inp-atom-domain').value;
+  await sb.from('knowledge_atoms').insert({source,insight,deploy_action,domain,deployed:false});
+  el('inp-atom-source').value=''; el('inp-atom-insight').value=''; el('inp-atom-deploy').value='';
+  el('form-atom').classList.remove('open');
+  await loadAtoms();
+  showToast('Atom captured ✓');
+}
+
+async function toggleAtomDeployed(id, deployed) {
+  await sb.from('knowledge_atoms').update({deployed}).eq('id',id);
+  await loadAtoms();
+  if(deployed) showToast('Atom deployed — insight in action ✓','green');
+}
+
+async function deleteAtom(id) {
+  await sb.from('knowledge_atoms').delete().eq('id',id);
+  await loadAtoms();
+  showToast('Deleted');
+}
+
+// ─── RELATIONSHIPS ────────────────────────────────────────────────────────────
+async function loadRelationships() {
+  const {data}=await sb.from('relationships').select('*').order('tier').order('last_contact',{ascending:true});
+  S.relationships=data||[];
+  el('crm-total').textContent=S.relationships.length;
+  const t1=S.relationships.filter(r=>r.tier===1);
+  const t1Overdue=t1.filter(r=>daysSince(r.last_contact)>30);
+  const t1Coverage=t1.length?Math.round((t1.length-t1Overdue.length)/t1.length*100):100;
+  el('crm-t1-pct').textContent=t1Coverage+'%';
+  el('crm-t1-pct').style.color=t1Coverage>=100?'var(--green)':t1Coverage>=70?'var(--yellow)':'var(--red)';
+  el('crm-overdue').textContent=t1Overdue.length;
+  if(t1Overdue.length>0){
+    el('crm-alert').style.display='flex';
+    el('crm-alert-text').textContent=`${t1Overdue.length} Tier-1 contact${t1Overdue.length>1?'s':''} overdue >30 days: ${t1Overdue.map(r=>r.name).join(', ')}`;
+  }
+  renderRelationships();
+  updateRelAlertDaily();
+}
+
+function updateRelAlertDaily() {
+  const t1Overdue=S.relationships.filter(r=>r.tier===1&&daysSince(r.last_contact)>30);
+  if(t1Overdue.length>0){
+    el('rel-alert').style.display='flex';
+    el('rel-alert-text').textContent=`${t1Overdue.length} Tier-1 contact${t1Overdue.length>1?'s':''} overdue: ${t1Overdue.map(r=>r.name).join(', ')}. Clear tonight.`;
+  }
+}
+
+async function checkOverdueRelationships() {
+  const {data}=await sb.from('relationships').select('id,name,tier,last_contact').eq('tier',1);
+  const overdue=(data||[]).filter(r=>daysSince(r.last_contact)>30);
+  S.relationships=data||[];
+  updateRelAlertDaily();
+}
+
+function renderRelationships() {
+  if(!S.relationships.length){el('list-relationships').innerHTML='<div class="empty-state">No contacts yet. Add your first contact.</div>';return;}
+  el('list-relationships').innerHTML=S.relationships.map(r=>{
+    const days=daysSince(r.last_contact);
+    const t1thresh=30, t2thresh=60;
+    const thresh=r.tier===1?t1thresh:r.tier===2?t2thresh:90;
+    const badgeClass=days>thresh?'overdue':days>thresh*.6?'soon':'ok';
+    const initial=(r.name||'?')[0].toUpperCase();
+    return `<div class="person-row">
+      <div class="person-avatar">${initial}</div>
+      <div class="person-info">
+        <div class="person-name">${r.name}</div>
+        <div class="person-meta">TIER ${r.tier} · ${(r.relationship_type||'NETWORK').toUpperCase()}${r.last_contact?' · Last: '+fmtDate(r.last_contact):''}</div>
+        ${r.next_action?`<div class="person-next">Next: ${r.next_action}</div>`:''}
+      </div>
+      <span class="days-badge ${badgeClass}">${days} days</span>
+      <div class="crm-actions">
+        <button class="btn btn-outline btn-sm" onclick="markContacted('${r.id}','${r.name}')" title="Mark as contacted today">TOUCHED</button>
+        <button class="btn btn-ghost btn-sm" onclick="openScheduleModal('${r.id}','${r.name}','${(r.next_action||'').replace(/'/g,"\\'")}')">SCHEDULE</button>
+        <button class="btn btn-ghost btn-sm" onclick="openEditContactModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">EDIT</button>
+        <button class="icon-btn" onclick="deleteContact('${r.id}','${r.name}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function markContacted(id, name) {
+  await sb.from('relationships').update({last_contact:today()}).eq('id',id);
+  await loadRelationships();
+  showToast(`${name} — marked contacted today ✓`,'green');
+}
+
+function openScheduleModal(id, name, currentNext) {
+  openModal(`SCHEDULE — ${name.toUpperCase()}`,
+    `<div class="form-row"><label class="form-label">Next Action</label>
+     <textarea id="modal-next-action" style="min-height:80px">${currentNext}</textarea></div>
+     <div class="form-row"><label class="form-label">Next Touch Date (optional)</label>
+     <input type="date" id="modal-next-date"></div>`,
+    async()=>{
+      const next_action=el('modal-next-action').value.trim();
+      await sb.from('relationships').update({next_action}).eq('id',id);
+      closeModal(); await loadRelationships();
+      showToast(`Scheduled: ${next_action} ✓`);
+    }, 'SAVE');
+}
+
+function openAddContactModal() {
+  openModal('ADD CONTACT',
+    `<div class="form-row"><label class="form-label">Name</label><input id="modal-c-name" placeholder="Full name or alias"></div>
+     <div class="form-row"><label class="form-label">Tier</label>
+       <select id="modal-c-tier"><option value="1">Tier 1 — Must touch monthly (family, closest)</option><option value="2" selected>Tier 2 — Touch every 60 days (network)</option><option value="3">Tier 3 — Touch every 90 days (loose network)</option></select>
+     </div>
+     <div class="form-row"><label class="form-label">Relationship Type</label>
+       <select id="modal-c-type"><option>FAMILY</option><option>CAREER</option><option>PERSONAL</option><option>NETWORK</option><option>MENTOR</option></select>
+     </div>
+     <div class="form-row"><label class="form-label">Last Contact</label><input type="date" id="modal-c-last" value="${today()}"></div>
+     <div class="form-row"><label class="form-label">Notes</label><textarea id="modal-c-notes" style="min-height:60px" placeholder="Context about this person..."></textarea></div>`,
+    async()=>{
+      const name=el('modal-c-name').value.trim(); if(!name){showToast('Name required','red');return;}
+      await sb.from('relationships').insert({
+        name, tier:parseInt(el('modal-c-tier').value),
+        relationship_type:el('modal-c-type').value,
+        last_contact:el('modal-c-last').value,
+        notes:el('modal-c-notes').value.trim()
+      });
+      closeModal(); await loadRelationships();
+      showToast(`${name} added to CRM ✓`);
+    }, 'ADD CONTACT');
+}
+
+function openEditContactModal(r) {
+  openModal('EDIT CONTACT',
+    `<div class="form-row"><label class="form-label">Name</label><input id="modal-ec-name" value="${r.name||''}"></div>
+     <div class="form-row"><label class="form-label">Tier</label>
+       <select id="modal-ec-tier">
+         <option value="1" ${r.tier===1?'selected':''}>Tier 1</option>
+         <option value="2" ${r.tier===2?'selected':''}>Tier 2</option>
+         <option value="3" ${r.tier===3?'selected':''}>Tier 3</option>
+       </select></div>
+     <div class="form-row"><label class="form-label">Relationship Type</label>
+       <select id="modal-ec-type">
+         ${['FAMILY','CAREER','PERSONAL','NETWORK','MENTOR'].map(t=>`<option ${r.relationship_type===t?'selected':''}>${t}</option>`).join('')}
+       </select></div>
+     <div class="form-row"><label class="form-label">Last Contact</label><input type="date" id="modal-ec-last" value="${r.last_contact||today()}"></div>
+     <div class="form-row"><label class="form-label">Next Action</label><input id="modal-ec-next" value="${r.next_action||''}"></div>
+     <div class="form-row"><label class="form-label">Notes</label><textarea id="modal-ec-notes" style="min-height:60px">${r.notes||''}</textarea></div>`,
+    async()=>{
+      await sb.from('relationships').update({
+        name:el('modal-ec-name').value.trim(),
+        tier:parseInt(el('modal-ec-tier').value),
+        relationship_type:el('modal-ec-type').value,
+        last_contact:el('modal-ec-last').value,
+        next_action:el('modal-ec-next').value.trim(),
+        notes:el('modal-ec-notes').value.trim()
+      }).eq('id',r.id);
+      closeModal(); await loadRelationships();
+      showToast('Contact updated ✓');
+    }, 'SAVE CHANGES');
+}
+
+async function deleteContact(id, name) {
+  openModal('DELETE CONTACT',`<p style="font-size:13px;color:#aaa">Remove <strong style="color:var(--white)">${name}</strong> from your CRM? This cannot be undone.</p>`,
+    async()=>{ await sb.from('relationships').delete().eq('id',id); closeModal(); await loadRelationships(); showToast(`${name} removed`); },'DELETE');
+}
+
+// ─── EDGES ────────────────────────────────────────────────────────────────────
+async function loadEdges() {
+  const {data}=await sb.from('edge_logs').select('*').order('created_at',{ascending:false});
+  S.edges=data||[];
+  const wk=S.edges.filter(e=>new Date(e.created_at)>=new Date(weekAgo())).length;
+  const deployed=S.edges.filter(e=>e.deployed).length;
+  const sharps=S.edges.filter(e=>e.sharpness).map(e=>e.sharpness);
+  const avg=sharps.length?(sharps.reduce((a,b)=>a+b,0)/sharps.length).toFixed(1):0;
+  el('stat-edge-wk').textContent=wk;
+  el('stat-edge-total').textContent=S.edges.length;
+  el('stat-edge-deployed').textContent=deployed;
+  el('stat-edge-sharp').textContent=avg;
+  renderEdges();
+}
+
+function renderEdges() {
+  if(!S.edges.length){el('list-edges').innerHTML='<div class="empty-state">No edge entries yet. Log your first contrarian insight.</div>';return;}
+  el('list-edges').innerHTML=S.edges.map(e=>`
+    <div class="atom-card" style="border-left:3px solid var(--gold);border-radius:0 4px 4px 0">
+      <div class="atom-source">${fmtDate(e.created_at).toUpperCase()}${e.context?' · '+e.context.toUpperCase():''}</div>
+      <div class="atom-insight">${e.insight}</div>
+      <div class="atom-footer">
+        <span class="atom-domain">IDENTITY</span>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--gold)">${e.sharpness||'—'}/10</span>
+        <span class="badge-deployed ${e.deployed?'yes':'no'}" onclick="toggleEdgeDeployed('${e.id}',${!e.deployed})" style="margin-left:auto">
+          ${e.deployed?'✓ DEPLOYED':'PENDING'}
+        </span>
+        <button class="icon-btn" onclick="deleteEdge('${e.id}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function addEdge() {
+  const insight=el('inp-edge-insight').value.trim(); if(!insight){showToast('Insight required','red');return;}
+  const context=el('inp-edge-context').value.trim();
+  const sharpness=parseInt(el('inp-edge-sharp').value)||8;
+  await sb.from('edge_logs').insert({insight,context,sharpness,deployed:false});
+  el('inp-edge-insight').value=''; el('inp-edge-context').value=''; el('inp-edge-sharp').value=8;
+  el('form-edge').classList.remove('open');
+  await loadEdges();
+  showToast('Edge logged ✓');
+}
+
+async function toggleEdgeDeployed(id, deployed) {
+  await sb.from('edge_logs').update({deployed}).eq('id',id);
+  await loadEdges();
+  if(deployed) showToast('Edge deployed ✓','green');
+}
+
+async function deleteEdge(id) {
+  await sb.from('edge_logs').delete().eq('id',id);
+  await loadEdges();
+  showToast('Deleted');
+}
+
+// ─── DECISIONS ────────────────────────────────────────────────────────────────
+async function loadDecisions() {
+  const {data}=await sb.from('decisions').select('*').gte('week_of',weekAgo()).order('created_at');
+  S.decisions=data||[];
+  renderDecisions();
+}
+
+function renderDecisions() {
+  if(!S.decisions.length){el('list-decisions').innerHTML='<div class="empty-state">No decisions this week. The whole point of the board is to make decisions.</div>';return;}
+  el('list-decisions').innerHTML=S.decisions.map(d=>`
+    <div class="mit-item">
+      <div class="mit-check ${d.done?'checked':''}" onclick="toggleDecision('${d.id}',${!d.done})">${d.done?'✓':''}</div>
+      <div class="mit-text ${d.done?'done':''}">${d.text}</div>
+      <span class="mit-tag">${d.domain||'GENERAL'}</span>
+      <button class="icon-btn" onclick="deleteDecision('${d.id}')">✕</button>
+    </div>`).join('');
+}
+
+async function addDecision() {
+  const text=el('inp-decision-text').value.trim(); if(!text) return;
+  const domain=el('inp-decision-domain').value;
+  await sb.from('decisions').insert({text,domain,done:false,week_of:today()});
+  el('inp-decision-text').value='';
+  el('form-decision').classList.remove('open');
+  await loadDecisions();
+  showToast('Decision logged ✓');
+}
+
+async function toggleDecision(id, done) {
+  await sb.from('decisions').update({done}).eq('id',id);
+  await loadDecisions();
+}
+
+async function deleteDecision(id) {
+  await sb.from('decisions').delete().eq('id',id);
+  await loadDecisions();
+  showToast('Deleted');
+}
+
+// ─── SPRINT ───────────────────────────────────────────────────────────────────
+async function loadSprint() {
+  const {data}=await sb.from('sprint_objectives').select('*').eq('quarter','Q2-2026').order('domain').order('objective_num');
+  S.sprint=data||[];
+  renderSprint();
+}
+
+function renderSprint() {
+  const domains=[...new Set(S.sprint.map(o=>o.domain))];
+  el('sprint-grid').innerHTML=domains.map(domain=>{
+    const objs=S.sprint.filter(o=>o.domain===domain);
+    return `<div class="card">
+      <div class="card-title">Q2 OBJECTIVES — ${domain}</div>
+      ${objs.map(o=>`
+        <div class="sprint-obj">
+          <div class="sprint-obj-header">
+            <div class="sprint-obj-num">0${o.objective_num}</div>
+            <div class="sprint-obj-text">${o.text}</div>
+          </div>
+          <div class="sprint-bar-row">
+            <div class="sprint-progress"><div class="sprint-fill" style="width:${o.progress||0}%;background:${(o.progress||0)>=70?'var(--green)':(o.progress||0)>=40?'var(--yellow)':'var(--red)'}"></div></div>
+            <span class="sprint-pct">${o.progress||0}%</span>
+            <button class="sprint-edit-btn" onclick="openProgressModal('${o.id}','${o.text.replace(/'/g,"\\'")}',${o.progress||0})">EDIT</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function openProgressModal(id, text, current) {
+  openModal('UPDATE PROGRESS',
+    `<p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5">${text}</p>
+     <div class="form-row"><label class="form-label">Progress: <span id="progress-display" style="color:var(--gold)">${current}%</span></label>
+       <input type="range" id="modal-progress" min="0" max="100" value="${current}" oninput="el('progress-display').textContent=this.value+'%'" style="margin-top:8px">
+     </div>`,
+    async()=>{
+      const progress=parseInt(el('modal-progress').value);
+      await sb.from('sprint_objectives').update({progress}).eq('id',id);
+      closeModal(); await loadSprint();
+      showToast('Progress updated ✓');
+    }, 'SAVE');
+}
+
+// ─── SIDE HUSTLE ──────────────────────────────────────────────────────────────
+function openAddHustleModal() {
+  openModal('ADD HUSTLE IDEA',
+    `<div class="form-row"><label class="form-label">Idea Name</label><input id="modal-h-name" placeholder="What's the idea?"></div>
+     <div class="form-row"><label class="form-label">Status</label>
+       <select id="modal-h-status"><option>IDEA</option><option>VALIDATING</option><option>BUILDING</option><option>LIVE</option><option>PAUSED</option><option>KILLED</option></select>
+     </div>
+     <div class="form-row"><label class="form-label">Next Action</label><input id="modal-h-next" placeholder="What's the immediate next step?"></div>`,
+    ()=>{
+      const name=el('modal-h-name').value.trim(); if(!name) return;
+      const status=el('modal-h-status').value;
+      const next=el('modal-h-next').value.trim();
+      const tbody=el('hustle-tbody');
+      const row=document.createElement('tr');
+      row.innerHTML=`<td>${name}</td><td><span style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:var(--border);color:var(--muted)">${status}</span></td><td style="font-size:11px;color:var(--muted)">${next}</td><td><button class="icon-btn" onclick="this.closest('tr').remove();showToast('Removed')">✕</button></td>`;
+      tbody.appendChild(row);
+      closeModal(); showToast(`${name} added to pipeline ✓`);
+    }, 'ADD');
+}
+
+function openEditHustleModal(btn, name, status, next) {
+  const row=btn.closest('tr');
+  openModal('EDIT HUSTLE',
+    `<div class="form-row"><label class="form-label">Idea Name</label><input id="modal-eh-name" value="${name}"></div>
+     <div class="form-row"><label class="form-label">Status</label>
+       <select id="modal-eh-status">${['IDEA','VALIDATING','BUILDING','LIVE','PAUSED','KILLED'].map(s=>`<option ${s===status?'selected':''}>${s}</option>`).join('')}</select>
+     </div>
+     <div class="form-row"><label class="form-label">Next Action</label><input id="modal-eh-next" value="${next}"></div>`,
+    ()=>{
+      const newName=el('modal-eh-name').value.trim();
+      const newStatus=el('modal-eh-status').value;
+      const newNext=el('modal-eh-next').value.trim();
+      const statusColors={'IDEA':'var(--border)','VALIDATING':'rgba(212,168,50,.15)','BUILDING':'rgba(212,168,50,.15)','LIVE':'rgba(82,201,122,.15)','PAUSED':'var(--border)','KILLED':'rgba(224,82,82,.15)'};
+      const textColors={'IDEA':'var(--muted)','VALIDATING':'var(--yellow)','BUILDING':'var(--yellow)','LIVE':'var(--green)','PAUSED':'var(--muted)','KILLED':'var(--red)'};
+      row.cells[0].textContent=newName;
+      row.cells[1].innerHTML=`<span style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:${statusColors[newStatus]};color:${textColors[newStatus]}">${newStatus}</span>`;
+      row.cells[2].textContent=newNext;
+      closeModal(); showToast('Updated ✓');
+    }, 'SAVE');
+}
+
+// ─── FINANCE ──────────────────────────────────────────────────────────────────
+function toggleFinanceCheck(el) {
+  el.classList.toggle('checked');
+  el.textContent=el.classList.contains('checked')?'✓':'';
+  el.closest('.mit-item').querySelector('.mit-text').classList.toggle('done',el.classList.contains('checked'));
+}
+
+// ─── KPIs ─────────────────────────────────────────────────────────────────────
+async function loadAllKPIs() {
+  el('kpi-week-label').textContent='Week of '+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const [health,wins,atoms,rels,mits,edges]=await Promise.all([
+    sb.from('health_logs').select('*').gte('date',weekAgo()),
+    sb.from('wins').select('*').gte('created_at',weekAgo()+'T00:00:00'),
+    sb.from('knowledge_atoms').select('*').gte('created_at',weekAgo()+'T00:00:00'),
+    sb.from('relationships').select('*').eq('tier',1),
+    sb.from('mits').select('*').gte('date',weekAgo()),
+    sb.from('edge_logs').select('*').gte('created_at',weekAgo()+'T00:00:00')
+  ]);
+
+  const hlogs=health.data||[];
+  const trained=hlogs.filter(h=>h.muscle_group&&h.muscle_group!=='Rest / Recovery').length;
+  const compliance=Math.round(trained/7*100);
+  const sleepVals=hlogs.filter(h=>h.sleep_hours).map(h=>parseFloat(h.sleep_hours));
+  const avgSleep=sleepVals.length?(sleepVals.reduce((a,b)=>a+b,0)/sleepVals.length).toFixed(1):0;
+  const recVals=hlogs.filter(h=>h.recovery_score).map(h=>h.recovery_score);
+  const avgRec=recVals.length?(recVals.reduce((a,b)=>a+b,0)/recVals.length).toFixed(1):0;
+  const mitsDone=(mits.data||[]).filter(m=>m.done).length;
+  const mitsTotal=(mits.data||[]).length;
+  const mitPct=mitsTotal?Math.round(mitsDone/mitsTotal*100):0;
+  const atomsWk=(atoms.data||[]).length;
+  const t1Rels=rels.data||[];
+  const t1Overdue=t1Rels.filter(r=>daysSince(r.last_contact)>30).length;
+  const relCoverage=t1Rels.length?Math.round((t1Rels.length-t1Overdue)/t1Rels.length*100):100;
+  const winsWk=(wins.data||[]).length;
+  const edgesWk=(edges.data||[]).length;
+
+  const setKPI=(kId,bId,val,label,pct,c)=>{ el(kId).textContent=label; el(bId).style.width=Math.min(pct,100)+'%'; el(bId).className='kpi-fill '+c; };
+  setKPI('kpi-train','bar-train',compliance,compliance+'%',compliance,compliance>=90?'green':compliance>=70?'yellow':'red');
+  setKPI('kpi-sleep','bar-sleep',avgSleep,avgSleep+'h',parseFloat(avgSleep)/9*100,parseFloat(avgSleep)>=7?'green':parseFloat(avgSleep)>=6?'yellow':'red');
+  setKPI('kpi-rec','bar-rec',avgRec,avgRec+'/5',parseFloat(avgRec)/5*100,parseFloat(avgRec)>=3.5?'green':parseFloat(avgRec)>=2.5?'yellow':'red');
+  setKPI('kpi-mit','bar-mit',mitPct,mitPct+'%',mitPct,mitPct>=80?'green':mitPct>=60?'yellow':'red');
+  setKPI('kpi-atoms','bar-atoms',atomsWk,atomsWk+' / week',atomsWk/5*100,atomsWk>=5?'green':atomsWk>=2?'yellow':'red');
+  setKPI('kpi-rel','bar-rel',relCoverage,relCoverage+'%',relCoverage,relCoverage>=100?'green':relCoverage>=70?'yellow':'red');
+  setKPI('kpi-wins','bar-wins',winsWk,winsWk+' / week',winsWk/3*100,winsWk>=3?'green':winsWk>=1?'yellow':'red');
+  setKPI('kpi-edge','bar-edge',edgesWk,edgesWk+' / week',edgesWk/1*100,edgesWk>=1?'green':'red');
+
+  const actions=[];
+  if(t1Overdue>0) actions.push({kpi:'Tier-1 Coverage',current:relCoverage+'%',threshold:'<70%',action:`Run SOP-006. Text ${t1Rels.filter(r=>daysSince(r.last_contact)>30).map(r=>r.name).join(', ')} tonight.`,c:'red'});
+  if(winsWk<1) actions.push({kpi:'Career Wins',current:winsWk+'/week',threshold:'<1 → ACT',action:'Consider visibility on active deal. Log something.',c:'red'});
+  if(atomsWk<2) actions.push({kpi:'Knowledge Atoms',current:atomsWk+'/week',threshold:'<2 → ACT',action:'Lower bar. 1 sentence counts. Capture from commute.',c:'yellow'});
+  if(edgesWk<1) actions.push({kpi:'Identity Edge',current:edgesWk+'/week',threshold:'<1 → ACT',action:'Log a half-formed idea. It does not need to be sharp yet.',c:'yellow'});
+  if(compliance<70) actions.push({kpi:'Training Compliance',current:compliance+'%',threshold:'<70% → ACT',action:'Activate SOP-008 deal sprint mode. Training is the non-negotiable.',c:'red'});
+  if(!actions.length) actions.push({kpi:'ALL CLEAR','current':'—','threshold':'—','action':'All KPIs on track. Keep compounding.','c':'green'});
+
+  el('kpi-actions').innerHTML=`<table>
+    <thead><tr><th>KPI</th><th>Current</th><th>Threshold</th><th>Action Required</th></tr></thead>
+    <tbody>${actions.map(a=>`<tr>
+      <td style="color:var(--${a.c})">${a.kpi}</td>
+      <td class="text-mono" style="color:var(--${a.c})">${a.current}</td>
+      <td class="text-mono text-muted">${a.threshold}</td>
+      <td style="font-size:12px">${a.action}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ─── SOPs ─────────────────────────────────────────────────────────────────────
+const SOPS=[
+  {id:'SOP-001',name:'Daily Command Routine',freq:'DAILY',time:'10 MIN',owner:'COO',triggered:false,detail:'Morning (5 min): Set MIT×3 — MIT #1 must be career-advancing. Check calendar. Set health intention. Set identity intention.\n\nEvening (5 min): Mark each MIT Done/Partial/Missed. Log training. Log sleep target. Log one win. Log one open loop.\n\nQA: Health logged. At least 1 win captured.'},
+  {id:'SOP-002',name:'Weekly Board Meeting',freq:'WEEKLY',time:'60 MIN',owner:'CoS',triggered:false,detail:'Pull all 8 domain logs → R/Y/G status per domain → KPI deltas → Make top 3 decisions → Set next week\'s MIT stack → Relationship queue scan (SOP-006).\n\nQA: ≥1 decision per domain. Every RED domain has an action.'},
+  {id:'SOP-003',name:'Health Daily Log + Trend',freq:'DAILY',time:'5 MIN',owner:'HEALTH',triggered:false,detail:'Log: training Y/N + muscle group + intensity. Log: sleep hours. Log: recovery score 1-5. Log: diet adherent Y/N.\n\nWeekly: Calculate compliance %, flag if <80%. Flag if 2+ consecutive misses.\n\nQA: 7-day avg computed. Threshold check triggered.'},
+  {id:'SOP-004',name:'Career Weekly Log',freq:'WEEKLY',time:'10 MIN',owner:'CWO',triggered:false,detail:'Log 3 wins (be specific — "MD praised" not "did well"). Log feedback received. Log deals touched. Log side hustle hours and revenue. Self-score promotion readiness 1-10.\n\nQA: ≥3 wins logged. Side hustle progress noted.'},
+  {id:'SOP-005',name:'Knowledge Capture → Distill → Deploy',freq:'PER SESSION',time:'3 MIN',owner:'CLO',triggered:false,detail:'Capture (3 min): Source → Core insight in your words → Deploy by doing what? → Tag domain.\n\nWeekly distillation (15 min): Review all atoms. Pick sharpest 1. Ask: did any atom change a decision this week? Log Y/N.\n\nQA: ≥1 atom deployed per week. Archive atoms unused after 30 days.'},
+  {id:'SOP-006',name:'Relationship CRM Weekly Scan',freq:'WEEKLY',time:'10 MIN',owner:'CRO',triggered:false,detail:'Open CRM page. Filter overdue (>30 days for Tier 1, >60 for Tier 2). Queue max 3 outreach actions. Log last contact after each touchpoint.\n\nQA: Zero Tier-1 contacts overdue. Queue cleared by Sunday.'},
+  {id:'SOP-007',name:'Inbox Zero Protocol',freq:'DAILY',time:'15 MIN',owner:'COO',triggered:false,detail:'Batch process Outlook once daily (not continuously). Apply 4D framework: Do (<2 min), Defer (schedule), Delegate, Delete. Inbox to zero. Flag any item needing >15 min as tomorrow\'s MIT.\n\nQA: Inbox at zero. No item left unprocessed.'},
+  {id:'SOP-008',name:'Deal Sprint Survival Protocol',freq:'TRIGGERED',time:'ONGOING',owner:'CoS',triggered:true,detail:'ACTIVATED: Current status — DEAL SPRINT ACTIVE.\n\nActivate MVOS-only mode. Training remains non-negotiable — this is the one thing that survives. Drop all non-Tier-1 relationship touches. Pause side hustle. Daily log shrinks to 3 fields: training Y/N, one win, one open loop.\n\nDeactivate when sprint ends. Run full SOP-002 board meeting to catch up.'},
+  {id:'SOP-009',name:'Monthly Financial Audit',freq:'MONTHLY',time:'30 MIN',owner:'CFO',triggered:false,detail:'LOCAL EXCEL ONLY. Never cloud.\n\nUpdate all account balances. Calculate NW delta MoM. Calculate savings rate (saved ÷ take-home). Log investment moves with thesis. Update side hustle P&L. Write one-line narrative: "This month I ___".\n\nQA: NW delta calculated. Savings rate computed. No data stored in cloud.'},
+  {id:'SOP-010',name:'Quarterly Sprint Planning',freq:'QUARTERLY',time:'3 HRS',owner:'CSO',triggered:false,detail:'First Sunday of each quarter. Review prior Q: hits and misses. Set 3 objectives per domain (24 total). Filter each through identity test: does this compound toward dynastically wealthy + smartest in room? Calendar major milestones.\n\nQA: 24 objectives written. Each passes identity filter. Calendar blocked.'},
+  {id:'SOP-011',name:'Identity Edge Log',freq:'WEEKLY',time:'5 MIN',owner:'CIO',triggered:false,detail:'Log entry: Date + Insight + Context + Sharpness 1-10 + Deployed Y/N.\n\nMonthly: Review top 5 entries. Ask: are these becoming who I intend to be? Are these shaping how I show up in rooms that matter?\n\nQA: ≥1 entry per week. At least 1 deployed per month.'},
+  {id:'SOP-012',name:'Monthly System Audit',freq:'MONTHLY',time:'30 MIN',owner:'CoS',triggered:false,detail:'Last Sunday of each month. Three questions:\n1. What am I tracking that doesn\'t change a decision? → Eliminate it.\n2. What is causing friction? → Simplify it.\n3. What is working? → Double down.\n\nLog all changes in system changelog. One variable changed per week maximum.'}
+];
+
+function renderSOPs() {
+  el('sop-grid').innerHTML=SOPS.map((s,i)=>`
+    <div class="sop-card ${s.triggered?'triggered':''}" onclick="toggleSOPDetail('sop-detail-${i}')">
+      <div class="sop-id">${s.id}${s.triggered?' · ACTIVE':''}</div>
+      <div class="sop-name">${s.name}</div>
+      <div class="sop-meta">
+        <span class="sop-tag ${s.triggered?'red':''}">${s.freq}</span>
+        <span class="sop-tag">${s.time}</span>
+        <span class="sop-tag">${s.owner}</span>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted)">▼ EXPAND</span>
+      </div>
+      <div class="sop-detail" id="sop-detail-${i}">${s.detail.replace(/\n/g,'<br>')}</div>
+    </div>`).join('');
+}
+
+function toggleSOPDetail(id) {
+  el(id).classList.toggle('open');
+}
+
+// ─── EXPORT CSV ───────────────────────────────────────────────────────────────
+async function exportAllCSV() {
+  showToast('Fetching all data...');
+  const tables=['mits','wins','knowledge_atoms','relationships','edge_logs','decisions','health_logs'];
+  for(const t of tables){
+    const {data}=await sb.from(t).select('*').order('created_at',{ascending:false});
+    if(!data||!data.length) continue;
+    const cols=Object.keys(data[0]);
+    const csv=[cols.join(','),...data.map(r=>cols.map(c=>JSON.stringify(r[c]??'')).join(','))].join('\n');
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download=`youinc-${t}-${today()}.csv`;
+    a.click();
+    await new Promise(r=>setTimeout(r,300));
+  }
+  showToast('All CSVs exported ✓','green');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  const now=new Date();
+  el('topbar-date').textContent=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  el('footer-date').textContent=`Q2 2026 · Week ${Math.ceil((now-new Date(now.getFullYear(),0,1))/(7*24*60*60*1000))}`;
+  el('board-week-label').textContent='Week of '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  el('kpi-week-label').textContent='Week of '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  // Test DB connection
+  const {error}=await sb.from('mits').select('id').limit(1);
+  if(error){ console.error('DB Error:',error); showToast('DB connection issue — check console','red'); }
+  else { loadPage('daily'); }
+}
+
+init();
+</script>
+</body>
+</html>
