@@ -1011,6 +1011,7 @@ async function doSignIn(){
   const{error}=await sb.auth.signInWithPassword({email,password:pass});
   el('btn-signin').textContent='SIGN IN';
   if(error){showAuthMsg(error.message);return;}
+  setTimeout(()=>window.location.href=window.location.pathname,500);
 }
 async function signOut(){
   await sb.auth.signOut();USER=null;USER_ID=null;showLanding();
