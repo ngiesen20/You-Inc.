@@ -1018,28 +1018,36 @@ async function signOut(){
 }
 
 // ─── SESSION + PAYMENT GATE ───────────────────────────────────────────────────
-sb.auth.onAuthStateChange(async(event,session)=>{
-  if(session){
-    USER=session.user;USER_ID=session.user.id;
-    // Check URL for payment success
-    const params=new URLSearchParams(window.location.search);
-    if(params.get('payment')==='success'){
-      await sb.from('profiles').upsert({id:USER_ID,has_paid:true,updated_at:new Date().toISOString()});
-      window.history.replaceState({},'',window.location.pathname);
-    }
-    await routeUser();
+async function handleSession(session){
+  if(!session||USER)return;
+  USER=session.user;USER_ID=session.user.id;
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('payment')==='success'){
+    await sb.from('profiles').upsert({id:USER_ID,has_paid:true,updated_at:new Date().toISOString()});
+    window.history.replaceState({},'',window.location.pathname);
   }
+  await routeUser();
+}
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'){await handleSession(session);}
 });
+(async()=>{const{data:{session}}=await sb.auth.getSession();await handleSession(session);})();
 
 async function routeUser(){
-  const{data}=await sb.from('profiles').select('has_paid,onboarded,full_name').eq('id',USER_ID).single();
-  if(!data||!data.has_paid){
-    showScreen('paywall');return;
+  try{
+    const{data,error}=await sb.from('profiles').select('has_paid,onboarded,full_name').eq('id',USER_ID).single();
+    if(error||!data){
+      // Profile read failed - upsert and send to onboarding
+      await sb.from('profiles').upsert({id:USER_ID,full_name:USER.user_metadata?.full_name||USER.email,has_paid:true,onboarded:false});
+      startOnboarding(USER.user_metadata?.full_name||'');return;
+    }
+    if(!data.has_paid){showScreen('paywall');return;}
+    if(!data.onboarded){startOnboarding(data.full_name||USER.user_metadata?.full_name||'');return;}
+    launchApp(data.full_name||USER.user_metadata?.full_name||'User');
+  }catch(e){
+    // Fallback - just launch the app
+    startOnboarding(USER.user_metadata?.full_name||'');
   }
-  if(!data.onboarded){
-    startOnboarding(data.full_name||USER.user_metadata?.full_name||'');return;
-  }
-  launchApp(data.full_name||USER.user_metadata?.full_name||'User');
 }
 
 // ─── CHECKOUT ────────────────────────────────────────────────────────────────
